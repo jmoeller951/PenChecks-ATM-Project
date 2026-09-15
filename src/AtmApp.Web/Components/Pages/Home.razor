@@ -1,0 +1,83 @@
+@page "/"
+@inject IAtmService AtmService
+
+<PageTitle>PenChecks ATM</PageTitle>
+
+<h1>PenChecks ATM</h1>
+
+@if (_accounts is null)
+{
+    <p>Loading accounts…</p>
+}
+else
+{
+    <div class="atm-grid">
+        @foreach (var account in _accounts)
+        {
+            var accountId = account.Id;
+            <AccountCard Account="account"
+                         OtherAccounts="_accounts.Where(a => a.Id != accountId).ToList()"
+                         Balance="_balances[accountId]"
+                         History="_histories[accountId]"
+                         Message="@(_messages.GetValueOrDefault(accountId).Text)"
+                         IsError="_messages.GetValueOrDefault(accountId).IsError"
+                         OnDeposit="amount => HandleDeposit(accountId, amount)"
+                         OnWithdraw="amount => HandleWithdraw(accountId, amount)"
+                         OnTransfer="args => HandleTransfer(accountId, args.ToAccountId, args.Amount)" />
+        }
+    </div>
+}
+
+@code {
+    private IReadOnlyList<Account>? _accounts;
+    private readonly Dictionary<Guid, decimal> _balances = new();
+    private readonly Dictionary<Guid, IReadOnlyList<Transaction>> _histories = new();
+    private readonly Dictionary<Guid, (string? Text, bool IsError)> _messages = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _accounts = await AtmService.GetAccounts();
+        await RefreshAll();
+    }
+
+    // A transfer affects two accounts at once, so every mutation refreshes every card rather than
+    // just the one the user acted on — see the AccountCard doc comment for why this lives here.
+    private async Task RefreshAll()
+    {
+        foreach (var account in _accounts!)
+        {
+            _balances[account.Id] = await AtmService.GetBalance(account.Id);
+            _histories[account.Id] = await AtmService.GetHistory(account.Id);
+        }
+    }
+
+    private Task HandleDeposit(Guid accountId, decimal amount) =>
+        RunAndApply(accountId, () => AtmService.Deposit(accountId, amount, Guid.NewGuid()));
+
+    private Task HandleWithdraw(Guid accountId, decimal amount) =>
+        RunAndApply(accountId, () => AtmService.Withdraw(accountId, amount, Guid.NewGuid()));
+
+    private Task HandleTransfer(Guid fromAccountId, Guid toAccountId, decimal amount) =>
+        RunAndApply(fromAccountId, () => AtmService.Transfer(fromAccountId, toAccountId, amount, Guid.NewGuid()));
+
+    private async Task RunAndApply<T>(Guid accountId, Func<Task<Result<T>>> operation)
+    {
+        try
+        {
+            var result = await operation();
+            if (result.IsSuccess)
+            {
+                _messages[accountId] = ("Done.", false);
+                await RefreshAll();
+            }
+            else
+            {
+                _messages[accountId] = (result.Error ?? "The operation failed.", true);
+            }
+        }
+        catch (Exception ex)
+        {
+            _messages[accountId] = (ex.Message, true);
+        }
+    }
+}

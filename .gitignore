@@ -1,0 +1,17 @@
+## .NET
+bin/
+obj/
+*.user
+
+## SQLite
+*.db
+*.db-shm
+*.db-wal
+
+## IDE
+.vs/
+.vscode/
+
+## OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,155 @@
+@* Purely presentational: all state (balance, history, last message) lives on the Home page and
+   flows down as parameters, because a transfer mutates two accounts at once and a sibling
+   AccountCard has no way to know it needs to refresh itself otherwise. *@
+
+<div class="account-card">
+    <div class="account-card__header">
+        <h2>@Account.Name</h2>
+        <div class="account-card__balance">@Balance.ToUsd()</div>
+    </div>
+
+    @if (Message is not null)
+    {
+        <div class="account-card__message @(IsError ? "account-card__message--error" : "account-card__message--success")">
+            @Message
+        </div>
+    }
+
+    <div class="account-card__form">
+        <label>
+            Amount
+            <input type="text" inputmode="decimal" placeholder="$0.00" value="@_amountText"
+                   @oninput="OnAmountInput" @onfocusout="OnAmountBlur" disabled="@_isSubmitting" />
+        </label>
+
+        <div class="account-card__actions">
+            <button @onclick="HandleDepositClick" disabled="@_isSubmitting">Deposit</button>
+            <button @onclick="HandleWithdrawClick" disabled="@_isSubmitting">Withdraw</button>
+        </div>
+
+        @if (OtherAccounts.Count > 0)
+        {
+            <div class="account-card__transfer">
+                <label>
+                    Transfer to
+                    <select @bind="_transferTargetId" disabled="@_isSubmitting">
+                        @foreach (var other in OtherAccounts)
+                        {
+                            <option value="@other.Id">@other.Name</option>
+                        }
+                    </select>
+                </label>
+                <button @onclick="HandleTransferClick" disabled="@_isSubmitting">Transfer</button>
+            </div>
+        }
+    </div>
+
+    <div class="account-card__history">
+        <h3>History</h3>
+        @if (History.Count == 0)
+        {
+            <p class="account-card__empty">No transactions yet.</p>
+        }
+        else
+        {
+            <ul>
+                @foreach (var transaction in History)
+                {
+                    <li>
+                        <span class="account-card__history-type">@FormatType(transaction.Type)</span>
+                        <span class="account-card__history-amount">@transaction.Amount.ToUsd()</span>
+                        <span class="account-card__history-balance">balance: @transaction.BalanceAfter.ToUsd()</span>
+                        <span class="account-card__history-timestamp">@transaction.Timestamp.ToLocalTime().ToString("g")</span>
+                    </li>
+                }
+            </ul>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public required Account Account { get; set; }
+
+    [Parameter]
+    public IReadOnlyList<Account> OtherAccounts { get; set; } = Array.Empty<Account>();
+
+    [Parameter, EditorRequired]
+    public required decimal Balance { get; set; }
+
+    [Parameter, EditorRequired]
+    public required IReadOnlyList<Transaction> History { get; set; }
+
+    [Parameter]
+    public string? Message { get; set; }
+
+    [Parameter]
+    public bool IsError { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback<decimal> OnDeposit { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback<decimal> OnWithdraw { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback<(Guid ToAccountId, decimal Amount)> OnTransfer { get; set; }
+
+    private decimal _amount;
+    private string _amountText = "";
+    private Guid _transferTargetId;
+    private bool _isSubmitting;
+
+    protected override void OnParametersSet()
+    {
+        if (_transferTargetId == Guid.Empty)
+            _transferTargetId = OtherAccounts.FirstOrDefault()?.Id ?? Guid.Empty;
+    }
+
+    private void OnAmountInput(ChangeEventArgs e)
+    {
+        _amountText = e.Value?.ToString() ?? "";
+        decimal.TryParse(_amountText, NumberStyles.Currency, CurrencyFormat.UsCulture, out _amount);
+    }
+
+    // Reformat to a full "$1,234.56" display once the user leaves the field, rather than fighting
+    // cursor position by reformatting on every keystroke.
+    private void OnAmountBlur(FocusEventArgs e) =>
+        _amountText = _amount > 0 ? _amount.ToUsd() : "";
+
+    private Task HandleDepositClick() => Submit(() => OnDeposit.InvokeAsync(_amount));
+
+    private Task HandleWithdrawClick() => Submit(() => OnWithdraw.InvokeAsync(_amount));
+
+    private Task HandleTransferClick() => Submit(() => OnTransfer.InvokeAsync((_transferTargetId, _amount)));
+
+    private async Task Submit(Func<Task> invokeCallback)
+    {
+        // First line of defense against a double-click resubmitting the same amount; the fresh
+        // idempotency key generated per attempt in Home's handlers is the second (§4 of the
+        // design doc).
+        if (_isSubmitting)
+            return;
+
+        _isSubmitting = true;
+        try
+        {
+            await invokeCallback();
+            _amount = 0;
+            _amountText = "";
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+
+    private static string FormatType(TransactionType type) => type switch
+    {
+        TransactionType.Deposit => "Deposit",
+        TransactionType.Withdrawal => "Withdrawal",
+        TransactionType.TransferOut => "Transfer out",
+        TransactionType.TransferIn => "Transfer in",
+        _ => type.ToString()
+    };
+}

@@ -1,0 +1,12 @@
+services:
+  atm-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    volumes:
+      - atm-data:/app/data
+
+volumes:
+  atm-data:
