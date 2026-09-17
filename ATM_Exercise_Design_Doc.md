@@ -1,6 +1,6 @@
 # ATM Application — Design Document
 
-**Stack**: Blazor Server (.NET 8), EF Core, SQLite (local)
+**Stack**: Blazor Server (.NET 10), EF Core, SQLite (local)
 **Time budget**: 2–4 hours — prioritize per the notes below; document what's scoped out rather than building everything.
 
 ---

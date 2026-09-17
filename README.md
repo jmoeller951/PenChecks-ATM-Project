@@ -3,10 +3,7 @@
 A single-user ATM web app: two seeded accounts, deposit/withdraw/transfer, and a running
 transaction history. Built to the brief in [`ATM_Exercise_Design_Doc.md`](ATM_Exercise_Design_Doc.md).
 
-**Stack**: Blazor Server, EF Core, SQLite (local). Targets **.NET 10** rather than the .NET 8
-in the original design doc — .NET 8 wasn't installed in the dev environment and .NET 10 is
-otherwise a drop-in match for everything the doc describes (Blazor Web App's unified template
-replaces the old `blazorserver` template; EF Core 10 is a straight upgrade).
+**Stack**: Blazor Server, EF Core, SQLite (local), targeting **.NET 10**.
 
 ## 1. Architecture
 
