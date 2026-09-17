@@ -5,7 +5,10 @@
 <div class="account-card">
     <div class="account-card__header">
         <h2>@Account.Name</h2>
-        <div class="account-card__balance">@Balance.ToUsd()</div>
+        <div class="account-card__balance-block">
+            <span class="account-card__balance-label">Current balance</span>
+            <div class="account-card__balance">@Balance.ToUsd()</div>
+        </div>
     </div>
 
     @if (Message is not null)
@@ -35,7 +38,8 @@
                     <select @bind="_transferTargetId" disabled="@_isSubmitting">
                         @foreach (var other in OtherAccounts)
                         {
-                            <option value="@other.Id">@other.Name</option>
+                            var otherBalance = AccountBalances.TryGetValue(other.Id, out var balance) ? balance : 0m;
+                            <option value="@other.Id">@other.Name (@otherBalance.ToUsd())</option>
                         }
                     </select>
                 </label>
@@ -80,8 +84,9 @@
     [Parameter, EditorRequired]
     public required IReadOnlyList<Transaction> History { get; set; }
 
-    [Parameter]
-    public string? Message { get; set; }
+    [Parameter]    public IReadOnlyDictionary<Guid, decimal> AccountBalances { get; set; } = new Dictionary<Guid, decimal>();
+
+    [Parameter]    public string? Message { get; set; }
 
     [Parameter]
     public bool IsError { get; set; }

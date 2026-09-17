@@ -3,6 +3,7 @@ using AtmApp.Infrastructure;
 using AtmApp.Infrastructure.Persistence;
 using AtmApp.Infrastructure.Seed;
 using AtmApp.Web.Components;
+using Microsoft.AspNetCore.DataProtection;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,6 +13,10 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddHealthChecks();
+
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo("/app/data/keys"));
 
 var app = builder.Build();
 
@@ -30,11 +35,17 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
-app.UseHttpsRedirection();
+
+var hasHttpsUrl = app.Urls.Any(url => url.StartsWith("https://", StringComparison.OrdinalIgnoreCase));
+if (hasHttpsUrl)
+{
+    app.UseHttpsRedirection();
+}
 
 app.UseAntiforgery();
 
 app.MapStaticAssets();
+app.MapHealthChecks("/health");
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 

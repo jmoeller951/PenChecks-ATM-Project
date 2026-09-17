@@ -56,8 +56,8 @@ docker compose up --build
 
 Builds the app via the multi-stage `Dockerfile` and runs it on `http://localhost:8080`, with
 the SQLite file persisted in a named volume (`atm-data`) so data survives container restarts.
-*(Not run against a live Docker daemon in this environment — Docker Desktop wasn't running —
-but it follows the standard ASP.NET Core multi-stage publish pattern.)*
+See [`DEPLOYMENT.md`](DEPLOYMENT.md) for full deployment instructions, configuration options,
+and a documented Dockerfile gotcha to avoid reintroducing.
 
 ## 3. Design decisions & tradeoffs
 
@@ -156,7 +156,7 @@ but it follows the standard ASP.NET Core multi-stage publish pattern.)*
 
 ## 7. A note on how this was verified
 
-Beyond `dotnet test` (12 integration tests against a real in-memory SQLite DB — deposit,
+Beyond `dotnet test` (20 integration tests against a real in-memory SQLite DB — deposit,
 withdraw, insufficient funds, invalid amount, unknown account, idempotent replay for both
 deposit and transfer, transfer atomicity, same-account guard, history ordering), the app was
 actually run and driven manually through a real browser (Chrome and Opera) end to end: deposit,

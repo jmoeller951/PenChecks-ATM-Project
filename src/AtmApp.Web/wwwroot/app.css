@@ -45,11 +45,39 @@ body {
     color: #1a1a1a;
 }
 
-.atm-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-    gap: 1.5rem;
-    align-items: start;
+.account-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.account-tab {
+    border: 1px solid #d0d5dd;
+    background: #fff;
+    color: #1f2937;
+    padding: 0.65rem 1rem;
+    border-radius: 8px 8px 0 0;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.account-tab--active {
+    background: #2b6cb0;
+    color: #fff;
+    border-color: #2b6cb0;
+}
+
+.account-tab-panels {
+    display: block;
+}
+
+.account-tab-panel {
+    display: none;
+}
+
+.account-tab-panel--active {
+    display: block;
 }
 
 .account-card {
@@ -62,15 +90,30 @@ body {
 .account-card__header {
     display: flex;
     justify-content: space-between;
-    align-items: baseline;
+    align-items: center;
     border-bottom: 1px solid #e5e5e5;
     padding-bottom: 0.75rem;
     margin-bottom: 1rem;
+    gap: 1rem;
 }
 
 .account-card__header h2 {
     margin: 0;
     font-size: 1.25rem;
+}
+
+.account-card__balance-block {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.account-card__balance-label {
+    font-size: 0.75rem;
+    line-height: 1.2;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #6b7280;
 }
 
 .account-card__balance {
@@ -112,7 +155,13 @@ body {
     border-radius: 4px;
 }
 
-.account-card__actions,
+.account-card__actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: flex-end;
+    margin-bottom: 0.75rem;
+}
+
 .account-card__transfer {
     display: flex;
     gap: 0.5rem;
@@ -121,7 +170,21 @@ body {
 }
 
 .account-card__transfer label {
+    display: flex;
     flex: 1;
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 0.25rem;
+    margin: 0;
+}
+
+.account-card__transfer select {
+    margin-top: 0;
+}
+
+.account-card__transfer button {
+    margin-top: 0.15rem;
+    align-self: flex-end;
 }
 
 button {

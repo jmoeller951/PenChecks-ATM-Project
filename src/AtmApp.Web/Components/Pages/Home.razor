@@ -11,20 +11,34 @@
 }
 else
 {
-    <div class="atm-grid">
+    var selectedAccount = _accounts.FirstOrDefault(a => a.Id == _selectedAccountId) ?? _accounts[0];
+    var selectedAccountId = selectedAccount.Id;
+
+    <div class="account-tabs" role="tablist" aria-label="Accounts">
         @foreach (var account in _accounts)
         {
-            var accountId = account.Id;
-            <AccountCard Account="account"
-                         OtherAccounts="_accounts.Where(a => a.Id != accountId).ToList()"
-                         Balance="_balances[accountId]"
-                         History="_histories[accountId]"
-                         Message="@(_messages.GetValueOrDefault(accountId).Text)"
-                         IsError="_messages.GetValueOrDefault(accountId).IsError"
-                         OnDeposit="amount => HandleDeposit(accountId, amount)"
-                         OnWithdraw="amount => HandleWithdraw(accountId, amount)"
-                         OnTransfer="args => HandleTransfer(accountId, args.ToAccountId, args.Amount)" />
+            var isSelected = _selectedAccountId == account.Id;
+            <button type="button"
+                    class="account-tab @(isSelected ? "account-tab--active" : "")"
+                    role="tab"
+                    aria-selected="@isSelected"
+                    @onclick="() => _selectedAccountId = account.Id">
+                @account.Name
+            </button>
         }
+    </div>
+
+    <div class="account-tab-panel account-tab-panel--active" role="tabpanel" aria-live="polite">
+        <AccountCard Account="selectedAccount"
+                     OtherAccounts="_accounts.Where(a => a.Id != selectedAccountId).ToList()"
+                     AccountBalances="_balances"
+                     Balance="_balances[selectedAccountId]"
+                     History="_histories[selectedAccountId]"
+                     Message="@(_messages.GetValueOrDefault(selectedAccountId).Text)"
+                     IsError="_messages.GetValueOrDefault(selectedAccountId).IsError"
+                     OnDeposit="amount => HandleDeposit(selectedAccountId, amount)"
+                     OnWithdraw="amount => HandleWithdraw(selectedAccountId, amount)"
+                     OnTransfer="args => HandleTransfer(selectedAccountId, args.ToAccountId, args.Amount)" />
     </div>
 }
 
@@ -33,10 +47,14 @@ else
     private readonly Dictionary<Guid, decimal> _balances = new();
     private readonly Dictionary<Guid, IReadOnlyList<Transaction>> _histories = new();
     private readonly Dictionary<Guid, (string? Text, bool IsError)> _messages = new();
+    private Guid _selectedAccountId;
 
     protected override async Task OnInitializedAsync()
     {
         _accounts = await AtmService.GetAccounts();
+        if (_accounts.Count > 0)
+            _selectedAccountId = _accounts[0].Id;
+
         await RefreshAll();
     }
 

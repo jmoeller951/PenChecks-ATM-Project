@@ -93,11 +93,54 @@ public class AtmServiceTests : IDisposable
         Assert.Equal(ErrorType.InvalidAmount, result.ErrorType);
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-5)]
+    public async Task Withdraw_NonPositiveAmount_ReturnsInvalidAmountFailure(decimal amount)
+    {
+        var result = await _sut.Withdraw(_checking.Id, amount, Guid.NewGuid());
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(ErrorType.InvalidAmount, result.ErrorType);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-5)]
+    public async Task Transfer_NonPositiveAmount_ReturnsInvalidAmountFailure(decimal amount)
+    {
+        var result = await _sut.Transfer(_checking.Id, _savings.Id, amount, Guid.NewGuid());
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(ErrorType.InvalidAmount, result.ErrorType);
+    }
+
     [Fact]
     public async Task Deposit_UnknownAccount_ThrowsAccountNotFoundException()
     {
         await Assert.ThrowsAsync<AccountNotFoundException>(
             () => _sut.Deposit(Guid.NewGuid(), 10m, Guid.NewGuid()));
+    }
+
+    [Fact]
+    public async Task Withdraw_UnknownAccount_ThrowsAccountNotFoundException()
+    {
+        await Assert.ThrowsAsync<AccountNotFoundException>(
+            () => _sut.Withdraw(Guid.NewGuid(), 10m, Guid.NewGuid()));
+    }
+
+    [Fact]
+    public async Task Transfer_FromUnknownAccount_ThrowsAccountNotFoundException()
+    {
+        await Assert.ThrowsAsync<AccountNotFoundException>(
+            () => _sut.Transfer(Guid.NewGuid(), _savings.Id, 10m, Guid.NewGuid()));
+    }
+
+    [Fact]
+    public async Task Transfer_ToUnknownAccount_ThrowsAccountNotFoundException()
+    {
+        await Assert.ThrowsAsync<AccountNotFoundException>(
+            () => _sut.Transfer(_checking.Id, Guid.NewGuid(), 10m, Guid.NewGuid()));
     }
 
     [Fact]
@@ -160,6 +203,22 @@ public class AtmServiceTests : IDisposable
 
         var first = await _sut.Transfer(_checking.Id, _savings.Id, 75m, key);
         var second = await _sut.Transfer(_checking.Id, _savings.Id, 75m, key);
+
+        Assert.True(first.IsSuccess);
+        Assert.True(second.IsSuccess);
+        Assert.Equal(first.Value!.OutgoingTransaction.Id, second.Value!.OutgoingTransaction.Id);
+        Assert.Equal(125m, await _sut.GetBalance(_checking.Id));
+        Assert.Equal(75m, await _sut.GetBalance(_savings.Id));
+    }
+
+    [Fact]
+    public async Task Transfer_ReplayedIdempotencyKey_WithDifferentAmount_DoesNotApplySecondAmount()
+    {
+        await _sut.Deposit(_checking.Id, 200m, Guid.NewGuid());
+        var key = Guid.NewGuid();
+
+        var first = await _sut.Transfer(_checking.Id, _savings.Id, 75m, key);
+        var second = await _sut.Transfer(_checking.Id, _savings.Id, 90m, key);
 
         Assert.True(first.IsSuccess);
         Assert.True(second.IsSuccess);
