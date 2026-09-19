@@ -107,7 +107,7 @@
 
     protected override void OnParametersSet()
     {
-        if (_transferTargetId == Guid.Empty)
+        if (!OtherAccounts.Any(a => a.Id == _transferTargetId))
             _transferTargetId = OtherAccounts.FirstOrDefault()?.Id ?? Guid.Empty;
     }
 
